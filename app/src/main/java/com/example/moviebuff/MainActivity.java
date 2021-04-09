@@ -4,6 +4,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.app.ProgressDialog;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
@@ -21,31 +24,38 @@ import retrofit2.converter.scalars.ScalarsConverterFactory;
 public class MainActivity extends AppCompatActivity {
 
     private MovieDbApi movieDbApi;
+    private RecyclerView recyclerView;
+    private RecyclerView.LayoutManager layoutManager;
+    private RecyclerViewAdapter recyclerViewAdapter;
+
+    //progressDialog is used to show the loading progress.
+    private ProgressDialog progressDialog;
+
+    // itemList will contain all the items for recyclerView.
+    private List<ItemClass> itemList;
 
     // results will contain all the list of the movies with all the properties like overview, rating etc.
     private List<Result> results = new ArrayList<>();
 
-    private RecyclerView recyclerView;
-    RecyclerView.LayoutManager layoutManager;
-    RecyclerViewAdapter recyclerViewAdapter;
-    List<ItemClass> itemList;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
-
+        //Making retrofit client
         movieDbApi = RetrofitClient.getClient();
 
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Loading...");
+        progressDialog.show();
+
+        // setting or initializing the results.
         setResults();
 
-        initItemListData();
-        initRecyclerView();
-
-
     }
+
 
 
     private void setResults(){
@@ -53,19 +63,31 @@ public class MainActivity extends AppCompatActivity {
         call.enqueue(new Callback<MoviePojo>() {
             @Override
             public void onResponse(Call<MoviePojo> call, Response<MoviePojo> response) {
-
+                progressDialog.dismiss();
 
                 MoviePojo moviePojo = response.body();
                 results = moviePojo.getResults();
-                Log.i("info", results.size()+"");
+
+                //initializing the item List.
+                initItemListData();
+
+
+                //initializing RecyclerView.
+                initRecyclerView();
 
             }
+
+
             @Override
             public void onFailure(Call<MoviePojo> call, Throwable t) {
+                progressDialog.dismiss();
+                Toast.makeText(MainActivity.this,"Connect to a Network",Toast.LENGTH_SHORT).show();
 
             }
         });
     }
+
+
 
     private void initRecyclerView(){
         recyclerView = findViewById(R.id.recyclerView);
@@ -77,23 +99,23 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+
+
     private void initItemListData(){
         itemList = new ArrayList<>();
-//        itemList.add(new ItemClass("https://image.tmdb.org/t/p/w500/pgqgaUx1cJb5oZQQ5v0tNARCeBp.jpg","Godzilla vs Kong"));
-//        itemList.add(new ItemClass("https://image.tmdb.org/t/p/w500/tnAuB8q5vv7Ax9UAEje5Xi4BXik.jpg","ic launcher"));
-//        itemList.add(new ItemClass("https://image.tmdb.org/t/p/w500/pgqgaUx1cJb5oZQQ5v0tNARCeBp.jpg","Godzilla vs Kong"));
-//        itemList.add(new ItemClass("https://image.tmdb.org/t/p/w500/tnAuB8q5vv7Ax9UAEje5Xi4BXik.jpg","ic launcher"));
-//        itemList.add(new ItemClass("https://image.tmdb.org/t/p/w500/pgqgaUx1cJb5oZQQ5v0tNARCeBp.jpg","Godzilla vs Kong"));
-//        itemList.add(new ItemClass("https://image.tmdb.org/t/p/w500/tnAuB8q5vv7Ax9UAEje5Xi4BXik.jpg","ic launcher"));
-//        itemList.add(new ItemClass("https://image.tmdb.org/t/p/w500/pgqgaUx1cJb5oZQQ5v0tNARCeBp.jpg","Godzilla vs Kong"));
-//        itemList.add(new ItemClass("https://image.tmdb.org/t/p/w500/tnAuB8q5vv7Ax9UAEje5Xi4BXik.jpg","ic launcher"));
 
+        String URL_PREFIX = "https://image.tmdb.org/t/p/w500";
         for(Result result : results){
-            String posterPath = result.getPosterPath();
+            String posterPath = URL_PREFIX + result.getPosterPath();
             String title = result.getOriginalTitle();
-            itemList.add(new ItemClass(posterPath,title));
+            String overView = result.getOverview();
+            String releaseDate = result.getReleaseDate();
+            String rating = result.getVoteAverage().toString();
+            String reviews = result.getVoteCount().toString();
+            itemList.add(new ItemClass(posterPath,title,overView,releaseDate,rating,reviews));
+
         }
 
-
     }
+
 }
